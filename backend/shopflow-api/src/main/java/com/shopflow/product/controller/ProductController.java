@@ -2,14 +2,13 @@
 package com.shopflow.product.controller;
 
 import com.shopflow.product.dto.CreateProductRequest;
+import com.shopflow.product.dto.ProductPageResponse;
 import com.shopflow.product.dto.ProductResponse;
 import com.shopflow.product.dto.UpdateProductRequest;
 import com.shopflow.product.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -29,8 +28,22 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductResponse> findAll() {
-        return productService.findAll();
+    public ProductPageResponse findAll(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        return productService.findAll(
+                search,
+                active,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
     }
 
     @GetMapping("/{id}")
