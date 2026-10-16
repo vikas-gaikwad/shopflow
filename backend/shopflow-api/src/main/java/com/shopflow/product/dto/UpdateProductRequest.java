@@ -27,4 +27,3 @@ public record UpdateProductRequest(
 
         boolean active
 ) {}
-

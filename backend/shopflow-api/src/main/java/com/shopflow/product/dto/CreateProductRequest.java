@@ -31,4 +31,3 @@ public record CreateProductRequest(
         @Min(0)
         Integer stockQuantity
 ) {}
-
