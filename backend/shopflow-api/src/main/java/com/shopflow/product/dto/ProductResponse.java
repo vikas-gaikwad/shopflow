@@ -1,4 +1,3 @@
-
 package com.shopflow.product.dto;
 
 import com.shopflow.product.entity.Product;
@@ -14,6 +13,8 @@ public record ProductResponse(
         BigDecimal price,
         Integer stockQuantity,
         boolean active,
+        Long categoryId,
+        String categoryName,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -26,6 +27,10 @@ public record ProductResponse(
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.isActive(),
+                product.getCategory() != null
+                        ? product.getCategory().getId() : null,
+                product.getCategory() != null
+                        ? product.getCategory().getName() : null,
                 product.getCreatedAt(),
                 product.getUpdatedAt()
         );

@@ -1,6 +1,8 @@
-
 package com.shopflow.product.service;
 
+import com.shopflow.category.entity.Category;
+import com.shopflow.category.repository.CategoryRepository;
+import com.shopflow.common.exception.CategoryNotFoundException;
 import com.shopflow.common.exception.DuplicateProductSkuException;
 import com.shopflow.common.exception.ProductNotFoundException;
 import com.shopflow.product.dto.*;
@@ -28,6 +30,7 @@ import java.util.Set;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "id",
@@ -40,8 +43,11 @@ public class ProductService {
             "updatedAt"
     );
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(
+            ProductRepository productRepository,
+            CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Transactional
@@ -52,20 +58,21 @@ public class ProductService {
             throw new DuplicateProductSkuException(sku);
         }
 
+        Category category = resolveCategory(request.categoryId());
+
         Product product = new Product(
                 sku,
                 request.name().trim(),
                 request.description(),
                 request.price(),
-                request.stockQuantity()
+                request.stockQuantity(),
+                category
         );
 
         try {
             return ProductResponse.from(
-                    productRepository.saveAndFlush(product)
-            );
+                    productRepository.saveAndFlush(product));
         } catch (DataIntegrityViolationException exception) {
-            // Also protects against concurrent requests for the same SKU.
             throw new DuplicateProductSkuException(sku);
         }
     }
@@ -73,6 +80,7 @@ public class ProductService {
     public ProductPageResponse findAll(
             String search,
             Boolean active,
+            Long categoryId,
             int page,
             int size,
             String sortBy,
@@ -89,16 +97,19 @@ public class ProductService {
         if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
             throw badRequest(
                     "Unsupported sortBy field. Allowed fields: "
-                            + ALLOWED_SORT_FIELDS
-            );
+                            + ALLOWED_SORT_FIELDS);
         }
 
         Sort.Direction direction;
-
         try {
             direction = Sort.Direction.fromString(sortDir);
         } catch (IllegalArgumentException exception) {
             throw badRequest("sortDir must be 'asc' or 'desc'.");
+        }
+
+        if (categoryId != null
+                && !categoryRepository.existsById(categoryId)) {
+            throw new CategoryNotFoundException(categoryId);
         }
 
         Pageable pageable = PageRequest.of(
@@ -116,28 +127,26 @@ public class ProductService {
                                 + search.trim().toLowerCase(Locale.ROOT)
                                 + "%";
 
-                        predicates.add(
-                                criteriaBuilder.like(
-                                        criteriaBuilder.lower(
-                                                root.get("name")
-                                        ),
-                                        pattern
-                                )
-                        );
+                        predicates.add(criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("name")),
+                                pattern
+                        ));
                     }
 
                     if (active != null) {
-                        predicates.add(
-                                criteriaBuilder.equal(
-                                        root.get("active"),
-                                        active
-                                )
-                        );
+                        predicates.add(criteriaBuilder.equal(
+                                root.get("active"), active));
+                    }
+
+                    if (categoryId != null) {
+                        predicates.add(criteriaBuilder.equal(
+                                root.get("category").get("id"),
+                                categoryId
+                        ));
                     }
 
                     return criteriaBuilder.and(
-                            predicates.toArray(new Predicate[0])
-                    );
+                            predicates.toArray(new Predicate[0]));
                 };
 
         Page<Product> productPage =
@@ -169,24 +178,69 @@ public class ProductService {
             UpdateProductRequest request) {
 
         Product product = getProduct(id);
+        Category category = resolveCategory(request.categoryId());
 
         product.updateDetails(
                 request.name().trim(),
                 request.description(),
                 request.price(),
                 request.stockQuantity(),
-                request.active()
+                request.active(),
+                category
         );
 
-        Product updatedProduct = productRepository.saveAndFlush(product);
-
-        return ProductResponse.from(updatedProduct);
+        return ProductResponse.from(productRepository.saveAndFlush(product));
     }
 
     @Transactional
     public void delete(Long id) {
         Product product = getProduct(id);
         productRepository.delete(product);
+    }
+
+    @Transactional
+    public ProductResponse adjustStock(
+            Long id,
+            StockAdjustmentRequest request) {
+
+        int adjustment = request.adjustment();
+
+        if (adjustment == 0) {
+            throw badRequest("Adjustment cannot be zero.");
+        }
+
+        Product product = productRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
+
+        long updatedQuantity =
+                (long) product.getStockQuantity() + adjustment;
+
+        if (updatedQuantity < 0) {
+            throw badRequest(
+                    "Insufficient stock. Current quantity: "
+                            + product.getStockQuantity()
+                            + ", requested adjustment: "
+                            + adjustment);
+        }
+
+        if (updatedQuantity > Integer.MAX_VALUE) {
+            throw badRequest(
+                    "Stock quantity exceeds the supported maximum.");
+        }
+
+        product.updateStockQuantity((int) updatedQuantity);
+
+        return ProductResponse.from(
+                productRepository.saveAndFlush(product));
+    }
+
+    private Category resolveCategory(Long categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new CategoryNotFoundException(categoryId));
     }
 
     private Product getProduct(Long id) {
@@ -196,40 +250,6 @@ public class ProductService {
 
     private ResponseStatusException badRequest(String message) {
         return new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                message
-        );
+                HttpStatus.BAD_REQUEST, message);
     }
-
-    @Transactional
-    public ProductResponse adjustStock(Long id,StockAdjustmentRequest request) {
-        int adjustment = request.adjustment();
-        if (adjustment == 0) {
-            throw badRequest("Adjustment cannot be zero.");
-        }
-        Product product = productRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new ProductNotFoundException(id));
-        long updatedQuantity =
-                (long) product.getStockQuantity() + adjustment;
-
-        if (updatedQuantity < 0) {
-            throw badRequest(
-                    "Insufficient stock. Current quantity: "
-                            + product.getStockQuantity()
-                            + ", requested adjustment: "
-                            + adjustment
-            );
-        }
-
-        if (updatedQuantity > Integer.MAX_VALUE) {
-            throw badRequest("Stock quantity exceeds the supported maximum.");
-        }
-
-        product.updateStockQuantity((int) updatedQuantity);
-
-        Product updatedProduct = productRepository.saveAndFlush(product);
-
-        return ProductResponse.from(updatedProduct);
-    }
-
 }

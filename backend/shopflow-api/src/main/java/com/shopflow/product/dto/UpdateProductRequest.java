@@ -1,4 +1,3 @@
-
 package com.shopflow.product.dto;
 
 import jakarta.validation.constraints.DecimalMin;
@@ -25,5 +24,9 @@ public record UpdateProductRequest(
         @Min(0)
         Integer stockQuantity,
 
-        boolean active
-) {}
+        boolean active,
+
+        @Min(1)
+        Long categoryId
+) {
+}
