@@ -1,4 +1,3 @@
-
 package com.shopflow.product.dto;
 
 import jakarta.validation.constraints.DecimalMin;
@@ -29,5 +28,9 @@ public record CreateProductRequest(
 
         @NotNull
         @Min(0)
-        Integer stockQuantity
-) {}
+        Integer stockQuantity,
+
+        @Min(1)
+        Long categoryId
+) {
+}

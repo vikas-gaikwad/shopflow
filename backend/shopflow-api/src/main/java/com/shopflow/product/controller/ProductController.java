@@ -28,6 +28,7 @@ public class ProductController {
     public ProductPageResponse findAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -36,6 +37,7 @@ public class ProductController {
         return productService.findAll(
                 search,
                 active,
+                categoryId,
                 page,
                 size,
                 sortBy,
@@ -69,4 +71,5 @@ public class ProductController {
 
         return productService.adjustStock(id, request);
     }
+
 }
