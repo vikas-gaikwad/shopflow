@@ -78,3 +78,23 @@ Never modify an already-applied migration in a shared database. Add a new versio
 Order creation locks product rows, validates all requested quantities, decreases stock, and persists the order in a single transaction. Cancellation locks the order and its associated products, restores quantities, and changes the order status. A failure should roll back the transaction.
 
 The database currently stores a current stock quantity, not a separate inventory movement ledger. A future enhancement could add auditable stock movements.
+
+
+### `customers` — V4
+
+| Column | Meaning |
+|---|---|
+| `id` | Identity primary key |
+| `name` | Required customer name, max 150 |
+| `email` | Required email address, max 254 |
+| `phone` | Optional phone number, max 20 |
+| `created_at`, `updated_at` | Time-zone-aware timestamps |
+
+The unique index `ux_customers_email_lower` enforces case-insensitive email uniqueness.
+
+### Migration history
+
+| Version | File | Purpose |
+|---|---|---|
+| V4 | `V4__create_customers_table.sql` | Create customer table and unique email index |
+

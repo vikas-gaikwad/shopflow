@@ -265,3 +265,59 @@ The global handler produces a common error structure for handled exceptions:
 ```
 
 Validation failures additionally include `fieldErrors`, mapping field names to validation messages. Exact messages depend on the exception and validation rule.
+
+
+## Customers
+
+### Create customer
+`POST /api/v1/customers`
+
+Request:
+```json
+{
+  "name": "Demo Customer",
+  "email": "demo@example.com",
+  "phone": "9876543210"
+}
+```
+
+Returns `201 Created` with a `CustomerResponse`.
+
+Validation:
+- Name is required and limited to 150 characters.
+- Email is required, must be valid, and is limited to 254 characters.
+- Phone is optional and limited to 20 characters.
+- Email addresses are normalized to lowercase.
+- Duplicate email addresses return `409 Conflict`.
+
+### Get customer
+`GET /api/v1/customers/{id}`
+
+Returns a customer or `404 Not Found`.
+
+### List customers
+`GET /api/v1/customers?page=0&size=10`
+
+- Page is zero-based and defaults to 0.
+- Size defaults to 10 and must be between 1 and 100.
+- Results are sorted by customer ID ascending.
+- Returns the shared `PageResponse<CustomerResponse>` structure.
+
+### Update customer
+`PUT /api/v1/customers/{id}`
+
+Request:
+```json
+{
+  "name": "Updated Customer",
+  "email": "updated@example.com",
+  "phone": "9876543210"
+}
+```
+
+Returns the updated customer.
+An email already used by another customer returns `409 Conflict`.
+An unknown customer returns `404 Not Found`.
+
+Security note: Authentication and authorization are planned for a later milestone. These endpoints must not be considered production-ready for access to personal data until appropriate access controls are implemented.
+
