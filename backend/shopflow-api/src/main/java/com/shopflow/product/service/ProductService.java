@@ -3,10 +3,7 @@ package com.shopflow.product.service;
 
 import com.shopflow.common.exception.DuplicateProductSkuException;
 import com.shopflow.common.exception.ProductNotFoundException;
-import com.shopflow.product.dto.CreateProductRequest;
-import com.shopflow.product.dto.ProductPageResponse;
-import com.shopflow.product.dto.ProductResponse;
-import com.shopflow.product.dto.UpdateProductRequest;
+import com.shopflow.product.dto.*;
 import com.shopflow.product.entity.Product;
 import com.shopflow.product.repository.ProductRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -203,4 +200,36 @@ public class ProductService {
                 message
         );
     }
+
+    @Transactional
+    public ProductResponse adjustStock(Long id,StockAdjustmentRequest request) {
+        int adjustment = request.adjustment();
+        if (adjustment == 0) {
+            throw badRequest("Adjustment cannot be zero.");
+        }
+        Product product = productRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
+        long updatedQuantity =
+                (long) product.getStockQuantity() + adjustment;
+
+        if (updatedQuantity < 0) {
+            throw badRequest(
+                    "Insufficient stock. Current quantity: "
+                            + product.getStockQuantity()
+                            + ", requested adjustment: "
+                            + adjustment
+            );
+        }
+
+        if (updatedQuantity > Integer.MAX_VALUE) {
+            throw badRequest("Stock quantity exceeds the supported maximum.");
+        }
+
+        product.updateStockQuantity((int) updatedQuantity);
+
+        Product updatedProduct = productRepository.saveAndFlush(product);
+
+        return ProductResponse.from(updatedProduct);
+    }
+
 }

@@ -88,6 +88,17 @@ public class Product {
         this.active = active;
     }
 
+    public void updateStockQuantity(int stockQuantity) {
+        if (stockQuantity < 0) {
+            throw new IllegalArgumentException(
+                    "Stock quantity cannot be negative"
+            );
+        }
+
+        this.stockQuantity = stockQuantity;
+    }
+
+
     public Long getId() { return id; }
     public String getSku() { return sku; }
     public String getName() { return name; }

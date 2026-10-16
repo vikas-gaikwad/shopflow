@@ -1,10 +1,7 @@
 
 package com.shopflow.product.controller;
 
-import com.shopflow.product.dto.CreateProductRequest;
-import com.shopflow.product.dto.ProductPageResponse;
-import com.shopflow.product.dto.ProductResponse;
-import com.shopflow.product.dto.UpdateProductRequest;
+import com.shopflow.product.dto.*;
 import com.shopflow.product.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -62,5 +59,14 @@ public class ProductController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         productService.delete(id);
+    }
+
+
+    @PatchMapping("/{id}/stock")
+    public ProductResponse adjustStock(
+            @PathVariable Long id,
+            @Valid @RequestBody StockAdjustmentRequest request) {
+
+        return productService.adjustStock(id, request);
     }
 }
