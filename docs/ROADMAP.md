@@ -38,3 +38,6 @@ Status is recorded as of the current Product, Category and Order Management impl
 - [ ] Final end-to-end verification and production-readiness review
 
 Items in the planned section are not yet implemented unless moved to Completed with evidence.
+- [x] Customer profile CRUD endpoints (create, retrieve, list and update)
+- [x] Flyway V4 customer table and case-insensitive email uniqueness
+- [x] Manual verification of customer API validation and duplicate-email handling

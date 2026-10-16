@@ -126,3 +126,5 @@ erDiagram
 Implemented: product/category/order REST APIs, PostgreSQL persistence, Flyway, validation, basic exception handling, stock locking, and compile CI.
 
 Planned: automated test phase, security/authentication/authorization, messaging, resilience, caching, observability, containerization, deployment automation, and Angular frontend. Do not describe planned items as available until implemented and verified.
+
+- `customer`: customer profile creation, retrieval, pagination and updates.
